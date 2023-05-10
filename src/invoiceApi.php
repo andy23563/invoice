@@ -114,7 +114,7 @@ class invoiceApi
             'cache-control: no-cache'
         ];
 
-        if ($type == 2) {
+        if ($type == 2) { // 雲端載具
             $parametersArray = [
                 'version' => '0.5',
                 'cardType' => '3J0002',
@@ -128,7 +128,7 @@ class invoiceApi
                 'appID' => env('INVOICE_APP_ID', ''),
                 'cardEncrypt' => $vehicleCode
             ];
-        } elseif ($type == 3) {
+        } elseif ($type == 3) { //悠遊卡
             $parametersArray = [
                 'version' => '0.5',
                 'cardType' => '1K0001',
@@ -142,7 +142,7 @@ class invoiceApi
                 'appID' => env('INVOICE_APP_ID', ''),
                 'cardEncrypt' => $vehicleCode
             ];
-        } elseif ($type == 4) {
+        } elseif ($type == 4) { // 一卡通
             $parametersArray = [
                 'version' => '0.5',
                 'cardType' => '1H0001',
@@ -156,7 +156,7 @@ class invoiceApi
                 'appID' => env('INVOICE_APP_ID', ''),
                 'cardEncrypt' => $vehicleCode
             ];
-        } elseif ($type == 1) {
+        } elseif ($type == 1) { // 電子發票
             $parametersArray = [
                 'version' => '0.5',
                 'type' => 'Barcode',
@@ -224,6 +224,7 @@ class invoiceApi
             } else if (json_decode($response)->code === 999) {
                 throw new Exception("財政部API無回應");
             } else {
+                Log::channel('invapi')->info(print_r(json_decode($response), true));
                 return $response;
             }
         } catch (Exception $e) {
@@ -232,12 +233,8 @@ class invoiceApi
                 'code' => json_decode($response)->code ?? 999,
                 'invStatus' => '財政部API錯誤',
             ];
+            Log::channel('invapi')->info(print_r($fakeRes, true));
             return json_encode($fakeRes);
         }
-    }
-
-    public function result()
-    {
-        return $this->result;
     }
 }
