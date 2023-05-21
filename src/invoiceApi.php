@@ -18,7 +18,6 @@ class invoiceApi
      */
     public function __construct()
     {
-
     }
 
     /**
@@ -60,6 +59,97 @@ class invoiceApi
             throw new Exception($e->getMessage());
         }
     }
+
+    /**
+     * @param string $type
+     * @param string $cardNo
+     * @param string $verifyCode
+     * @param string $invStartAt
+     * @param string $invEndAt
+     * @return array
+     * @throws Exception
+     */
+    public function callInvoiceHeaderAPI(
+        string $type,
+        string $cardNo,
+        string $verifyCode,
+        string $invStartAt,
+        string $invEndAt
+    ): array
+    {
+        try {
+
+            $this->setInvoiceUrl('https://api.einvoice.nat.gov.tw/PB2CAPIVAN/invServ/InvServ');
+
+            $stringResult = $this->setUpInvoiceHeaderAPI(
+                $type,
+                $cardNo,
+                $verifyCode,
+                $invStartAt,
+                $invEndAt
+            );
+
+            $result = json_decode(strval($stringResult), true);
+
+            if (isset($result['code']) && $result['code'] == 200) { // 回傳有時字串，有時數字
+                if (isset($result['details'])) {
+                    $result = $this->implodeHeaderDetails($result, $type);
+                }
+
+                Log::channel('invapi')->info(print_r($result, true));
+                return $result;
+            }
+
+            if (isset($result['code']) && $result['code'] == 999) {
+                Log::channel('invapi')->error(print_r($result, true));
+                return $result;
+            }
+
+            if (isset($result['code']) && $result['code'] == 903) {
+                Log::channel('invapi')->error(print_r($result, true));
+                return $result;
+            }
+
+            if (isset($result['code']) && $result['code'] == 919) {
+                Log::channel('invapi')->error(print_r($result, true));
+                return $result;
+            }
+
+            if (isset($result['msg'])) {
+                $message = '財政部API錯誤：' . $result['msg'];
+            } else {
+                $message = '財政部API錯誤';
+            }
+
+            $info = [
+                'code' => $result['code'] ?? 'error',
+                'msg' => $message,
+                'error' => $stringResult
+            ];
+
+            Log::channel('invapi')->error(print_r($info, true));
+            return $info;
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
+    /**
+     * @param array $invoiceData
+     * @return array|string
+     * @throws Exception
+     */
+    public function callScheduleInvoiceAPI(array $invoiceData): array | string
+    {
+        try {
+            return $this->setUpScheduleInvoiceAPI(
+                $invoiceData
+            );
+        } catch (Exception $e) {
+            throw new Exception($e->getMessage());
+        }
+    }
+
 
     /**
      * 設定財政部 api url
@@ -177,6 +267,178 @@ class invoiceApi
     }
 
     /**
+     * @param string $type
+     * @param String $cardNo
+     * @param string $verifyCode
+     * @param string $invStartAt
+     * @param string $invEndAt
+     * @return bool|string
+     * @throws Exception
+     */
+    protected function setUpInvoiceHeaderAPI(
+        string $type,
+        string $cardNo,
+        string $verifyCode,
+        string $invStartAt,
+        string $invEndAt
+    ): bool|string
+    {
+        $headerArray = [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+            'cache-control: no-cache'
+        ];
+
+        if ($type == 2) {
+            $parametersArray = [
+                'version' => '0.5',
+                'cardType' => '3J0002',
+                'cardNo' => $cardNo,
+                'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'action' => 'carrierInvChk',
+                'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'startDate' => $invStartAt,
+                'endDate' => $invEndAt,
+                'onlyWinningInv' => 'N',
+                'uuid' => (int)Carbon::now()->addHour()->timestamp,
+                'appID' => 'EINV9201901086064',
+                'cardEncrypt' => $verifyCode
+            ];
+        } elseif ($type == 3) {
+            $parametersArray = [
+                'version' => '0.5',
+                'cardType' => '1K0001',
+                'cardNo' => $cardNo,
+                'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'action' => 'carrierInvChk',
+                'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'startDate' => $invStartAt,
+                'endDate' => $invEndAt,
+                'onlyWinningInv' => 'N',
+                'uuid' => (int)Carbon::now()->addHour()->timestamp,
+                'appID' => 'EINV9201901086064',
+                'cardEncrypt' => $verifyCode
+            ];
+        } elseif ($type == 4) {
+            $parametersArray = [
+                'version' => '0.5',
+                'cardType' => '1H0001',
+                'cardNo' => $cardNo,
+                'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'action' => 'carrierInvChk',
+                'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'startDate' => $invStartAt,
+                'endDate' => $invEndAt,
+                'onlyWinningInv' => 'N',
+                'uuid' => (int)Carbon::now()->addHour()->timestamp,
+                'appID' => 'EINV9201901086064',
+                'cardEncrypt' => $verifyCode
+            ];
+        } elseif ($type === '電子發票') {
+            $parametersArray = [
+                'version' => '0.5',
+                'cardType' => '3J0001',
+                'cardNo' => $cardNo,
+                'expTimeStamp' => (int)Carbon::now()->timestamp + 1000,
+                'action' => 'carrierInvChk',
+                'timeStamp' => (int)Carbon::now()->timestamp,
+                'startDate' => $invStartAt,
+                'endDate' => $invEndAt,
+                'onlyWinningInv' => 'N',
+                'uuid' => time(),
+                'appID' => 'EINV9201901086064',
+                'cardEncrypt' => $verifyCode
+            ];
+        } else {
+            $parametersArray = [];
+        }
+
+        return $this->curlHttp($this->invoiceUrl, 'POST', $headerArray, $parametersArray);
+    }
+
+    /**
+     * @param array $invoiceData
+     * @return array|string
+     */
+    protected function setUpScheduleInvoiceAPI(array $invoiceData): array | string
+    {
+        $headerArray = [
+            'Content-Type' => 'application/x-www-form-urlencoded',
+            'cache-control: no-cache'
+        ];
+        $parametersArray = [];
+        $urlArray = [];
+        $execGroupNum = 0;
+
+        foreach ($invoiceData as $invoiceDatas) {
+            $execGroupNum = $execGroupNum + 1;
+            if ($invoiceDatas['type'] == 2) { // 雲端載具
+                $parametersArray[] = [
+                    'version' => '0.5',
+                    'cardType' => '3J0002',
+                    'cardNo' => $invoiceDatas['phoneVehicle'],
+                    'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                    'action' => 'carrierInvDetail',
+                    'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                    'invNum' => $invoiceDatas['invoiceNumber'],
+                    'invDate' => Carbon::parse($invoiceDatas['invoiceDate'])->format('Y/m/d'),
+                    'uuid' => time(),
+                    'appID' => env('INVOICE_APP_ID', ''),
+                    'cardEncrypt' => $invoiceDatas['vehicleCode']
+                ];
+                $urlArray[] = 'https://api.einvoice.nat.gov.tw/PB2CAPIVAN/invServ/InvServ';
+            } elseif ($invoiceDatas['type'] == 3) { //悠遊卡
+                $parametersArray[] = [
+                    'version' => '0.5',
+                    'cardType' => '1K0001',
+                    'cardNo' => $invoiceDatas['phoneVehicle'],
+                    'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                    'action' => 'carrierInvDetail',
+                    'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                    'invNum' => $invoiceDatas['invoiceNumber'],
+                    'invDate' => Carbon::parse($invoiceDatas['invoiceDate'])->format('Y/m/d'),
+                    'uuid' => time(),
+                    'appID' => env('INVOICE_APP_ID', ''),
+                    'cardEncrypt' => $invoiceDatas['vehicleCode']
+                ];
+                $urlArray[] = 'https://api.einvoice.nat.gov.tw/PB2CAPIVAN/invServ/InvServ';
+            } elseif ($invoiceDatas['type'] == 4) { // 一卡通
+                $parametersArray[] = [
+                    'version' => '0.5',
+                    'cardType' => '1H0001',
+                    'cardNo' => $invoiceDatas['phoneVehicle'],
+                    'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                    'action' => 'carrierInvDetail',
+                    'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                    'invNum' => $invoiceDatas['invoiceNumber'],
+                    'invDate' => Carbon::parse($invoiceDatas['invoiceDate'])->format('Y/m/d'),
+                    'uuid' => time(),
+                    'appID' => env('INVOICE_APP_ID', ''),
+                    'cardEncrypt' => $invoiceDatas['vehicleCode']
+                ];
+                $urlArray[] = 'https://api.einvoice.nat.gov.tw/PB2CAPIVAN/invServ/InvServ';
+            } elseif ($invoiceDatas['type'] == 1) { // 電子發票
+                $parametersArray[] = [
+                    'version' => '0.5',
+                    'type' => 'Barcode',
+                    'invNum' => $invoiceDatas['invoiceNumber'],
+                    'action' => 'qryInvDetail',
+                    'generation' => 'V2',
+                    'invTerm' => $this->formatPhase($invoiceDatas['invoiceDate']),
+                    'invDate' => Carbon::parse($invoiceDatas['invoiceDate'])->format('Y/m/d'),
+                    'UUID' => time(),
+                    'randomNumber' => $invoiceDatas['randomCode'],
+                    'appID' => env('INVOICE_APP_ID', '')
+                ];
+                $urlArray[] = 'https://api.einvoice.nat.gov.tw/PB2CAPIVAN/invapp/InvApp';
+            } else {
+                $parametersArray[] = [];
+            }
+        }
+
+        return $this->curlMutiHttp($execGroupNum, 'POST', $headerArray, $parametersArray, $urlArray);
+    }
+
+    /**
      * @param String $url
      * @param String $method
      * @param array $headerArray
@@ -221,7 +483,7 @@ class invoiceApi
 
             if ($err) {
                 throw new Exception("財政部API錯誤：{$err}");
-            } else if (json_decode($response)->code === 999) {
+            } elseif (json_decode($response)->code === 999) {
                 throw new Exception("財政部API無回應");
             } else {
                 Log::channel('invapi')->info(print_r(json_decode($response), true));
@@ -236,5 +498,96 @@ class invoiceApi
             Log::channel('invapi')->info(print_r($fakeRes, true));
             return json_encode($fakeRes);
         }
+    }
+
+    /**
+     * @param int $execGroupNum
+     * @param String $method
+     * @param array $headerArray
+     * @param array $parametersArray
+     * @param array $urlArray
+     * @return array|string
+     */
+    protected function curlMutiHttp(int $execGroupNum, string $method, array $headerArray, array $parametersArray, array $urlArray): array | string
+    {
+        $chArr = [];
+        $result = [];
+
+        for ($i = 0; $i < $execGroupNum; $i++) {
+            Log::channel('invapi')->info(print_r($i, true));
+            Log::channel('invapi')->info(print_r($urlArray[$i], true));
+            Log::channel('invapi')->info(print_r($parametersArray[$i], true));
+            $chArr[$i] = curl_init();
+            $optArr = [
+                CURLOPT_URL => $urlArray[$i],
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => "",
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => $method,
+                CURLOPT_POSTFIELDS => http_build_query($parametersArray[$i]),
+                CURLOPT_HTTPHEADER => $headerArray,
+                CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1',
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false
+            ];
+            curl_setopt_array($chArr[$i], $optArr);
+        }
+
+        $mh = curl_multi_init();
+
+        foreach ($chArr as $ch) {
+            curl_multi_add_handle($mh, $ch);
+        }
+
+        $active = null;
+
+        do {
+            $mrc = curl_multi_exec($mh, $active);
+        } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+        while ($active && $mrc == CURLM_OK) {
+            if (curl_multi_select($mh) != -1) {
+                do {
+                    $mrc = curl_multi_exec($mh, $active);
+                } while ($mrc == CURLM_CALL_MULTI_PERFORM);
+            }
+        }
+
+        foreach ($chArr as $i => $ch) {
+            $result[$i] = curl_multi_getcontent($ch);
+            curl_multi_remove_handle($mh, $ch);
+        }
+        Log::channel('invapi')->info(print_r($result, true));
+        curl_multi_close($mh);
+        return $result;
+
+    }
+
+    /**
+     * 整理Header中所需發票資訊
+     * @param array $details
+     * @param string $type
+     * @return array
+     * @throws Exception
+     */
+    public function implodeHeaderDetails(array $details, string $type): array
+    {
+        $invoiceData = [];
+        foreach ($details['details'] as $detail) {
+            $invoiceData[] = [
+                'storeName' => $detail['sellerName'],
+                'storeBan' => $detail['sellerBan'],
+                'invoiceNumber' => $detail['invNum'],
+                'type' => $type,
+                'amount' => $detail['amount'],
+                'invoiceDate' => Carbon::createFromFormat('Y/m/d', $detail['invDate']['year'] + 1911 . '/' . $detail['invDate']['month'] . '/' . $detail['invDate']['date'])->format('Y/m/d'),
+                'invoiceTime' => $detail['invoiceTime'],
+                'buyerBan' => $detail['buyerBan'],
+            ];
+        }
+
+        return $invoiceData;
     }
 }
