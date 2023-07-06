@@ -516,7 +516,7 @@ class invoiceApi
         $result = [];
 
         for ($i = 0; $i < $execGroupNum; $i++) {
-            Log::channel('invapi')->info(print_r($i, true));
+            Log::channel('invapi')->info(print_r('Invoice id : '.$invoiceId[$i], true));
             Log::channel('invapi')->info(print_r($urlArray[$i], true));
             Log::channel('invapi')->info(print_r($parametersArray[$i], true));
             $chArr[$i] = curl_init();
