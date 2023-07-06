@@ -368,8 +368,10 @@ class invoiceApi
         $parametersArray = [];
         $urlArray = [];
         $execGroupNum = 0;
+        $invoiceId = [];
 
         foreach ($invoiceData as $invoiceDatas) {
+            $invoiceId[] = $invoiceDatas['id'];
             $execGroupNum = $execGroupNum + 1;
             if ($invoiceDatas['type'] == 2) { // 雲端載具
                 $parametersArray[] = [
@@ -435,7 +437,7 @@ class invoiceApi
             }
         }
 
-        return $this->curlMutiHttp($execGroupNum, 'POST', $headerArray, $parametersArray, $urlArray);
+        return $this->curlMutiHttp($execGroupNum, 'POST', $headerArray, $parametersArray, $urlArray, $invoiceId);
     }
 
     /**
@@ -508,7 +510,7 @@ class invoiceApi
      * @param array $urlArray
      * @return array|string
      */
-    protected function curlMutiHttp(int $execGroupNum, string $method, array $headerArray, array $parametersArray, array $urlArray): array | string
+    protected function curlMutiHttp(int $execGroupNum, string $method, array $headerArray, array $parametersArray, array $urlArray, array $invoiceId): array | string
     {
         $chArr = [];
         $result = [];
@@ -556,7 +558,7 @@ class invoiceApi
         }
 
         foreach ($chArr as $i => $ch) {
-            $result[$i] = curl_multi_getcontent($ch);
+            $result[$i] = ['invoiceId' => $invoiceId[$i] , 'result' =>curl_multi_getcontent($ch)];
             curl_multi_remove_handle($mh, $ch);
         }
         Log::channel('invapi')->info(print_r($result, true));
