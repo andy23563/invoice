@@ -369,9 +369,11 @@ class invoiceApi
         $urlArray = [];
         $execGroupNum = 0;
         $invoiceId = [];
+        $userId = [];
 
         foreach ($invoiceData as $invoiceDatas) {
             $invoiceId[] = $invoiceDatas['id'];
+            $userId[] = $invoiceDatas['user_id'];
             $execGroupNum = $execGroupNum + 1;
             if ($invoiceDatas['type'] == 2) { // 雲端載具
                 $parametersArray[] = [
@@ -437,7 +439,7 @@ class invoiceApi
             }
         }
 
-        return $this->curlMutiHttp($execGroupNum, 'POST', $headerArray, $parametersArray, $urlArray, $invoiceId);
+        return $this->curlMutiHttp($execGroupNum, 'POST', $headerArray, $parametersArray, $urlArray, $invoiceId, $userId);
     }
 
     /**
@@ -508,15 +510,18 @@ class invoiceApi
      * @param array $headerArray
      * @param array $parametersArray
      * @param array $urlArray
+     * @param array $invoiceId
+     * @param array $userId
      * @return array|string
      */
-    protected function curlMutiHttp(int $execGroupNum, string $method, array $headerArray, array $parametersArray, array $urlArray, array $invoiceId): array | string
+    protected function curlMutiHttp(int $execGroupNum, string $method, array $headerArray, array $parametersArray, array $urlArray, array $invoiceId, array $userId): array | string
     {
         $chArr = [];
         $result = [];
 
         for ($i = 0; $i < $execGroupNum; $i++) {
             Log::channel('invapi')->info(print_r('Invoice id : '.$invoiceId[$i], true));
+            Log::channel('invapi')->info(print_r('User id : '.$userId[$i], true));
             Log::channel('invapi')->info(print_r($urlArray[$i], true));
             Log::channel('invapi')->info(print_r($parametersArray[$i], true));
             $chArr[$i] = curl_init();
@@ -558,7 +563,7 @@ class invoiceApi
         }
 
         foreach ($chArr as $i => $ch) {
-            $result[$i] = ['invoiceId' => $invoiceId[$i] , 'result' =>curl_multi_getcontent($ch)];
+            $result[$i] = ['invoiceId' => $invoiceId[$i] , 'userId' => $userId[$i],'result' =>curl_multi_getcontent($ch)];
             curl_multi_remove_handle($mh, $ch);
         }
         Log::channel('invapi')->info(print_r($result, true));
