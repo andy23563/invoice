@@ -377,54 +377,65 @@ class invoiceApi
             $userId[] = $invoiceDatas['user_id'];
             $execGroupNum = $execGroupNum + 1;
 
-            $parametersArray[] = [
-                'version' => '0.5',
-                'invNum' => $invoiceDatas['invoiceNumber'],
-                'invDate' => Carbon::parse($invoiceDatas['invoiceDate'])->format('Y/m/d'),
-                'UUID' => time(),
-                'appID' => env('INVOICE_APP_ID', '')
-            ];
-
             switch ($invoiceDatas['type']) {
                 case 1: // 電子發票
                     $parametersArray[] = [
+                        'version' => '0.5',
                         'type' => 'Barcode',
                         'action' => 'qryInvDetail',
                         'generation' => 'V2',
                         'invTerm' => $this->formatPhase($invoiceDatas['invoiceDate']),
-                        'randomNumber' => $invoiceDatas['randomCode']
+                        'randomNumber' => $invoiceDatas['randomCode'],'invNum' => $invoiceDatas['invoiceNumber'],
+                        'invDate' => Carbon::parse($invoiceDatas['invoiceDate'])->format('Y/m/d'),
+                        'UUID' => time(),
+                        'appID' => env('INVOICE_APP_ID', '')
                     ];
                     $urlArray[] = 'https://api.einvoice.nat.gov.tw/PB2CAPIVAN/invapp/InvApp';
                     break;
                 case 2: // 雲端載具
                     $parametersArray[] = [
+                        'version' => '0.5',
                         'cardType' => '3J0002',
                         'cardNo' => $invoiceDatas['phoneVehicle'],
                         'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
                         'action' => 'carrierInvDetail',
                         'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                        'invNum' => $invoiceDatas['invoiceNumber'],
+                        'invDate' => Carbon::parse($invoiceDatas['invoiceDate'])->format('Y/m/d'),
+                        'UUID' => time(),
+                        'appID' => env('INVOICE_APP_ID', ''),
                         'cardEncrypt' => $invoiceDatas['vehicleCode']
                     ];
                     $urlArray[] = 'https://api.einvoice.nat.gov.tw/PB2CAPIVAN/invServ/InvServ';
                     break;
                 case 3: //悠遊卡
                     $parametersArray[] = [
+                        'version' => '0.5',
                         'cardType' => '1K0001',
                         'cardNo' => $invoiceDatas['phoneVehicle'],
                         'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
                         'action' => 'carrierInvDetail',
                         'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                        'invNum' => $invoiceDatas['invoiceNumber'],
+                        'invDate' => Carbon::parse($invoiceDatas['invoiceDate'])->format('Y/m/d'),
+                        'UUID' => time(),
+                        'appID' => env('INVOICE_APP_ID', ''),
                         'cardEncrypt' => $invoiceDatas['vehicleCode']
                     ];
                     $urlArray[] = 'https://api.einvoice.nat.gov.tw/PB2CAPIVAN/invServ/InvServ';
                     break;
                 case 4: // 一卡通
                     $parametersArray[] = [
+                        'version' => '0.5',
                         'cardType' => '1H0001',
                         'cardNo' => $invoiceDatas['phoneVehicle'],
                         'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
                         'action' => 'carrierInvDetail',
                         'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                        'invNum' => $invoiceDatas['invoiceNumber'],
+                        'invDate' => Carbon::parse($invoiceDatas['invoiceDate'])->format('Y/m/d'),
+                        'UUID' => time(),
+                        'appID' => env('INVOICE_APP_ID', ''),
                         'cardEncrypt' => $invoiceDatas['vehicleCode']
                     ];
                     $urlArray[] = 'https://api.einvoice.nat.gov.tw/PB2CAPIVAN/invServ/InvServ';
