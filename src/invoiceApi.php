@@ -6,7 +6,7 @@ use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
-class invoiceApi
+class InvoiceApi
 {
     /**
      * @var mixed|string
@@ -204,8 +204,20 @@ class invoiceApi
             'cache-control: no-cache'
         ];
 
-        if ($type == 2) { // 雲端載具
-            $parametersArray = [
+        $parametersArray = match ($type) {
+            1 => [ //電子發票
+                'version' => '0.5',
+                'type' => 'Barcode',
+                'invNum' => $invoiceNumber,
+                'action' => 'qryInvDetail',
+                'generation' => 'V2',
+                'invTerm' => $phase,
+                'invDate' => $formattedDate,
+                'UUID' => time(),
+                'randomNumber' => $randomCode,
+                'appID' => env('INVOICE_APP_ID', '')
+            ],
+            2 => [ //雲端載具
                 'version' => '0.5',
                 'cardType' => '3J0002',
                 'cardNo' => $phoneVehicle,
@@ -217,9 +229,8 @@ class invoiceApi
                 'uuid' => time(),
                 'appID' => env('INVOICE_APP_ID', ''),
                 'cardEncrypt' => $vehicleCode
-            ];
-        } elseif ($type == 3) { //悠遊卡
-            $parametersArray = [
+            ],
+            3 => [ //悠遊卡
                 'version' => '0.5',
                 'cardType' => '1K0001',
                 'cardNo' => $phoneVehicle,
@@ -231,9 +242,8 @@ class invoiceApi
                 'uuid' => time(),
                 'appID' => env('INVOICE_APP_ID', ''),
                 'cardEncrypt' => $vehicleCode
-            ];
-        } elseif ($type == 4) { // 一卡通
-            $parametersArray = [
+            ],
+            4 => [ //一卡通
                 'version' => '0.5',
                 'cardType' => '1H0001',
                 'cardNo' => $phoneVehicle,
@@ -245,23 +255,9 @@ class invoiceApi
                 'uuid' => time(),
                 'appID' => env('INVOICE_APP_ID', ''),
                 'cardEncrypt' => $vehicleCode
-            ];
-        } elseif ($type == 1) { // 電子發票
-            $parametersArray = [
-                'version' => '0.5',
-                'type' => 'Barcode',
-                'invNum' => $invoiceNumber,
-                'action' => 'qryInvDetail',
-                'generation' => 'V2',
-                'invTerm' => $phase,
-                'invDate' => $formattedDate,
-                'UUID' => time(),
-                'randomNumber' => $randomCode,
-                'appID' => env('INVOICE_APP_ID', '')
-            ];
-        } else {
-            $parametersArray = [];
-        }
+            ],
+            default => throw new Exception('發票明細查詢：發票類型錯誤'),
+        };
 
         return $this->curlHttp($this->invoiceUrl, 'POST', $headerArray, $parametersArray);
     }
@@ -288,53 +284,8 @@ class invoiceApi
             'cache-control: no-cache'
         ];
 
-        if ($type == 2) {
-            $parametersArray = [
-                'version' => '0.5',
-                'cardType' => '3J0002',
-                'cardNo' => $cardNo,
-                'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
-                'action' => 'carrierInvChk',
-                'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
-                'startDate' => $invStartAt,
-                'endDate' => $invEndAt,
-                'onlyWinningInv' => 'N',
-                'uuid' => (int)Carbon::now()->addHour()->timestamp,
-                'appID' => 'EINV9201901086064',
-                'cardEncrypt' => $verifyCode
-            ];
-        } elseif ($type == 3) {
-            $parametersArray = [
-                'version' => '0.5',
-                'cardType' => '1K0001',
-                'cardNo' => $cardNo,
-                'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
-                'action' => 'carrierInvChk',
-                'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
-                'startDate' => $invStartAt,
-                'endDate' => $invEndAt,
-                'onlyWinningInv' => 'N',
-                'uuid' => (int)Carbon::now()->addHour()->timestamp,
-                'appID' => 'EINV9201901086064',
-                'cardEncrypt' => $verifyCode
-            ];
-        } elseif ($type == 4) {
-            $parametersArray = [
-                'version' => '0.5',
-                'cardType' => '1H0001',
-                'cardNo' => $cardNo,
-                'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
-                'action' => 'carrierInvChk',
-                'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
-                'startDate' => $invStartAt,
-                'endDate' => $invEndAt,
-                'onlyWinningInv' => 'N',
-                'uuid' => (int)Carbon::now()->addHour()->timestamp,
-                'appID' => 'EINV9201901086064',
-                'cardEncrypt' => $verifyCode
-            ];
-        } elseif ($type === '電子發票') {
-            $parametersArray = [
+        $parametersArray = match ($type) {
+            1 => [ //電子發票
                 'version' => '0.5',
                 'cardType' => '3J0001',
                 'cardNo' => $cardNo,
@@ -347,10 +298,51 @@ class invoiceApi
                 'uuid' => time(),
                 'appID' => 'EINV9201901086064',
                 'cardEncrypt' => $verifyCode
-            ];
-        } else {
-            $parametersArray = [];
-        }
+            ],
+            2 => [ //雲端載具
+                'version' => '0.5',
+                'cardType' => '3J0002',
+                'cardNo' => $cardNo,
+                'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'action' => 'carrierInvChk',
+                'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'startDate' => $invStartAt,
+                'endDate' => $invEndAt,
+                'onlyWinningInv' => 'N',
+                'uuid' => (int)Carbon::now()->addHour()->timestamp,
+                'appID' => 'EINV9201901086064',
+                'cardEncrypt' => $verifyCode
+            ],
+            3 => [ //悠遊卡
+                'version' => '0.5',
+                'cardType' => '1K0001',
+                'cardNo' => $cardNo,
+                'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'action' => 'carrierInvChk',
+                'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'startDate' => $invStartAt,
+                'endDate' => $invEndAt,
+                'onlyWinningInv' => 'N',
+                'uuid' => (int)Carbon::now()->addHour()->timestamp,
+                'appID' => 'EINV9201901086064',
+                'cardEncrypt' => $verifyCode
+            ],
+            4 => [ //一卡通
+                'version' => '0.5',
+                'cardType' => '1H0001',
+                'cardNo' => $cardNo,
+                'expTimeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'action' => 'carrierInvChk',
+                'timeStamp' => (int)Carbon::now()->addHour()->timestamp,
+                'startDate' => $invStartAt,
+                'endDate' => $invEndAt,
+                'onlyWinningInv' => 'N',
+                'uuid' => (int)Carbon::now()->addHour()->timestamp,
+                'appID' => 'EINV9201901086064',
+                'cardEncrypt' => $verifyCode
+            ],
+            default => throw new Exception('發票表頭查詢：發票類型錯誤'),
+        };
 
         return $this->curlHttp($this->invoiceUrl, 'POST', $headerArray, $parametersArray);
     }
