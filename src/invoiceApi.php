@@ -61,7 +61,7 @@ class InvoiceApi
     }
 
     /**
-     * @param string $type
+     * @param int $type
      * @param string $cardNo
      * @param string $verifyCode
      * @param string $invStartAt
@@ -70,7 +70,7 @@ class InvoiceApi
      * @throws Exception
      */
     public function callInvoiceHeaderAPI(
-        string $type,
+        int $type,
         string $cardNo,
         string $verifyCode,
         string $invStartAt,
@@ -179,7 +179,7 @@ class InvoiceApi
     }
 
     /**
-     * @param string $type
+     * @param int $type
      * @param String $invoiceNumber
      * @param String $phase
      * @param string $formattedDate
@@ -190,7 +190,7 @@ class InvoiceApi
      * @throws Exception
      */
     protected function setUpInvoiceAPI(
-        string $type,
+        int $type,
         string $invoiceNumber,
         string $phase,
         string $formattedDate,
@@ -263,7 +263,7 @@ class InvoiceApi
     }
 
     /**
-     * @param string $type
+     * @param int $type
      * @param String $cardNo
      * @param string $verifyCode
      * @param string $invStartAt
@@ -272,7 +272,7 @@ class InvoiceApi
      * @throws Exception
      */
     protected function setUpInvoiceHeaderAPI(
-        string $type,
+        int $type,
         string $cardNo,
         string $verifyCode,
         string $invStartAt,
